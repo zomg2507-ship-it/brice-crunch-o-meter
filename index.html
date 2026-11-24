@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BRICE Crunch-o-Meter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: loud, playful arcade booth for teens
+   IDEA: a carnival strength-tester ("high striker") for sound
+   PICTURE: giant vertical meter with prize tiers stacked like rungs
+   COLOUR and TYPE: roasted-rice brown ground, toasted gold, chilli red accent; Rubik Mono One + Rubik
+   LAYOUT: meter left, player + result + leaderboard right; stacks on phones */
+:root{--bg:#24170f;--panel:#33231a;--ink:#fff6ea;--mute:#cdb8a3;--gold:#f2b134;--red:#ef4b2f;--green:#7fb83a;--line:#4a3427}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.45 Rubik,system-ui,sans-serif;min-height:100vh;overflow-x:clip}
+h1,.big{font-family:"Rubik Mono One",Rubik,sans-serif;font-weight:400;letter-spacing:0}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px max(4vw,16px);flex-wrap:wrap}
+h1{margin:0;font-size:clamp(24px,4vw,44px);line-height:1.05;color:var(--gold)}
+h1 small{display:block;font:600 15px Rubik,sans-serif;color:var(--mute);margin-top:6px}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+button,input,select{font:inherit;font-size:16px;color:inherit}
+button{min-height:44px;padding:0 18px;border-radius:12px;border:2px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+button.go{background:var(--red);border-color:var(--red);font-family:"Rubik Mono One",sans-serif;font-size:clamp(20px,2.6vw,28px);min-height:76px;width:100%;border-radius:18px;box-shadow:0 6px 0 #9e2c18}
+button.go:active{transform:translateY(4px);box-shadow:0 2px 0 #9e2c18}
+button.go:disabled{opacity:.55;cursor:default}
+main{display:grid;grid-template-columns:minmax(260px,380px) minmax(0,1fr);gap:clamp(16px,3vw,40px);padding:0 max(4vw,16px) 32px;max-width:1280px;margin:0 auto}
+/* meter */
+.meter{position:relative;background:var(--panel);border-radius:24px;padding:18px;display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;height:min(78vh,720px);min-height:460px}
+.tube{position:relative;border-radius:48px;background:#160d08;border:4px solid var(--line);overflow:hidden}
+.fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(to top,var(--green),var(--gold) 55%,var(--red));transition:height .06s linear}
+.peak{position:absolute;left:-4px;right:-4px;height:5px;background:#fff;bottom:0;box-shadow:0 0 12px #fff}
+.rungs{position:relative}
+.rung{position:absolute;left:0;right:0;transform:translateY(50%);display:flex;align-items:center;gap:8px;font-size:14px;color:var(--mute);transition:color .2s,transform .2s}
+.rung::before{content:"";width:18px;height:4px;border-radius:2px;background:var(--line);flex:none}
+.rung b{color:var(--ink);font-size:15px}
+.rung.hit{color:var(--ink)}.rung.hit::before{background:var(--gold)}
+.rung.hit b{color:var(--gold)}
+.db{position:absolute;left:18px;top:18px;width:96px;text-align:center;font:800 15px Rubik;color:var(--mute);z-index:2;mix-blend-mode:normal}
+/* right column */
+.side{display:grid;gap:18px;align-content:start}
+.card{background:var(--panel);border-radius:20px;padding:20px}
+label{display:block;font-weight:600;margin-bottom:6px}
+input[type=text],input[type=number]{width:100%;min-height:48px;border-radius:12px;border:2px solid var(--line);background:#1c120c;padding:0 14px}
+.row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.row>*{flex:1 1 140px}
+.stage{text-align:center;min-height:190px;display:grid;place-items:center;gap:6px}
+.stage .big{font-size:clamp(56px,9vw,112px);line-height:1;color:var(--gold)}
+.stage .tier{font-family:"Rubik Mono One",sans-serif;font-size:clamp(22px,3vw,34px);color:var(--ink)}
+.stage .prize{font-size:18px;color:var(--mute)}
+.stage.pop .big{animation:pop .5s ease-out}
+@keyframes pop{0%{transform:scale(.4)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+ol{margin:0;padding:0;list-style:none;counter-reset:r}
+ol li{counter-increment:r;display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+ol li::before{content:counter(r);font:800 18px Rubik;color:var(--mute);text-align:center}
+ol li:nth-child(-n+3)::before{color:var(--bg);background:var(--gold);border-radius:50%;width:32px;height:32px;display:grid;place-items:center;margin:auto}
+ol li .s{font-weight:800;color:var(--gold);white-space:nowrap}
+ol li .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ol li.me{background:#4a3427;border-radius:10px}
+.empty{color:var(--mute);margin:8px 0 0}
+h2{margin:0 0 10px;font-size:20px}
+.note{font-size:14px;color:var(--mute);margin:10px 0 0}
+dialog{background:var(--panel);color:var(--ink);border:2px solid var(--line);border-radius:20px;max-width:min(560px,92vw);padding:22px}
+dialog::backdrop{background:#000a}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+textarea{width:100%;min-height:120px;border-radius:12px;background:#1c120c;color:var(--ink);border:2px solid var(--line);padding:10px;font:14px monospace}
+.msg{min-height:24px;color:var(--gold);font-weight:600}
+@media(max-width:760px){main{grid-template-columns:minmax(0,1fr)}.meter{height:440px;min-height:0}}
+@media(prefers-reduced-motion:reduce){.stage.pop .big{animation:none}.fill{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Crunch-o-Meter<small>BRICE · baked, never fried · how loud is your crunch?</small></h1>
+  <div class="tools">
+    <button id="fsBtn" type="button">Full screen</button>
+    <button id="staffBtn" type="button">Staff settings</button>
+  </div>
+</header>
+
+<main>
+  <section class="meter" aria-label="Sound meter">
+    <div class="tube"><div class="fill" id="fill"></div><div class="peak" id="peak"></div></div>
+    <div class="rungs" id="rungs"></div>
+    <div class="db" id="liveDb">— dB</div>
+  </section>
+
+  <section class="side">
+    <div class="card">
+      <form id="playForm" class="row">
+        <div><label for="nick">Nickname</label><input id="nick" type="text" maxlength="20" placeholder="e.g. CrunchQueen" autocomplete="off" required></div>
+        <div style="flex:0 1 220px"><button class="go" id="goBtn" type="submit">CRUNCH!</button></div>
+      </form>
+      <p class="note">Hold the BRICE pack close to the mic, take one big bite and crunch when the countdown hits GO. Use a nickname only, please.</p>
+    </div>
+
+    <div class="card stage" id="stage" aria-live="polite">
+      <div class="big" id="bigTxt">READY?</div>
+      <div class="tier" id="tierTxt">Step up and crunch</div>
+      <div class="prize" id="prizeTxt">Every crunch wins something. Loudest of the day wins the top merch.</div>
+    </div>
+
+    <div class="card">
+      <h2>Today's loudest crunchers</h2>
+      <ol id="board"></ol>
+      <p class="empty" id="emptyBoard">No crunches yet today. Be the first!</p>
+      <p class="note">Top 3 at closing time win the grand prizes.</p>
+    </div>
+  </section>
+</main>
+
+<dialog id="staff">
+  <h2>Staff settings</h2>
+  <div class="msg" id="micMsg"></div>
+  <div class="row" style="margin:10px 0">
+    <button type="button" id="micBtn">Connect microphone</button>
+    <button type="button" id="calBtn">Calibrate room (3 s)</button>
+    <button type="button" id="demoBtn">Demo mode</button>
+  </div>
+  <div class="grid2">
+    <div><label for="offset">Calibration offset (dB)</label><input id="offset" type="number" step="1"></div>
+    <div><label for="secs">Listening time (seconds)</label><input id="secs" type="number" min="2" max="10" step="1"></div>
+  </div>
+  <h2 style="margin-top:16px">Prize tiers (minimum dB)</h2>
+  <div class="grid2" id="tierInputs"></div>
+  <h2 style="margin-top:16px">Today's results</h2>
+  <textarea id="csv" readonly aria-label="Results as CSV"></textarea>
+  <div class="row" style="margin-top:10px">
+    <button type="button" id="copyBtn">Copy results</button>
+    <button type="button" id="resetBtn">Clear today</button>
+    <button type="button" id="closeBtn">Done</button>
+  </div>
+  <p class="note">Readings are approximate decibels from the device microphone, not a certified sound meter. Use the same tablet and mic position all day so scores stay fair. Calibrate in the quiet booth: the room noise is set to read about 45 dB.</p>
+</dialog>
+
+<script>
+{
+const $ = id => document.getElementById(id);
+const MIN = 30, MAX = 110;
+const store = {
+  get(k, d){ try { const v = localStorage.getItem("brice-" + k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem("brice-" + k, JSON.stringify(v)); } catch(e){} }
+};
+const today = () => new Date().toLocaleDateString("en-CA");
+const defaults = { offset: 100, secs: 4, tiers: [
+  { name: "Nibble", min: 0, prize: "Free BRICE sample pack" },
+  { name: "Crunch", min: 60, prize: "BRICE sticker" },
+  { name: "Mega Crunch", min: 70, prize: "BRICE keychain" },
+  { name: "Ultra Crunch", min: 80, prize: "BRICE tote bag" },
+  { name: "Legendary", min: 90, prize: "Tote bag + mystery box" }
+]};
+let cfg = Object.assign({}, defaults, store.get("cfg", {}));
+let scores = store.get("scores-" + today(), []);
+let ctx = null, analyser = null, buf = null, demo = false, running = false, live = MIN, lastId = null;
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" })[c]);
+const pct = db => Math.max(0, Math.min(100, (db - MIN) / (MAX - MIN) * 100));
+const tierFor = db => cfg.tiers.reduce((t, x) => db >= x.min ? x : t, cfg.tiers[0]);
+
+function drawRungs(hitDb){
+  $("rungs").innerHTML = cfg.tiers.slice().reverse().map(t => {
+    const y = t.min === 0 ? 4 : pct(t.min);
+    const hit = hitDb != null && hitDb >= t.min;
+    return `<div class="rung${hit ? " hit" : ""}" style="bottom:${y}%"><span><b>${esc(t.name)}</b><br>${t.min ? t.min + " dB · " : ""}${esc(t.prize)}</span></div>`;
+  }).join("");
+}
+function drawBoard(){
+  const top = scores.slice().sort((a, b) => b.db - a.db).slice(0, 10);
+  $("board").innerHTML = top.map(s => `<li class="${s.id === lastId ? "me" : ""}"><span class="n">${esc(s.nick)}</span><span class="s">${s.db} dB</span></li>`).join("");
+  $("emptyBoard").hidden = top.length > 0;
+  $("csv").value = "time,nickname,db,tier\n" + scores.map(s => `${s.time},"${s.nick.replace(/"/g, '""')}",${s.db},${s.tier}`).join("\n");
+}
+function setMeter(db, peakDb){
+  $("fill").style.height = pct(db) + "%";
+  if (peakDb != null) $("peak").style.bottom = `calc(${pct(peakDb)}% - 2px)`;
+  $("liveDb").textContent = Math.round(db) + " dB";
+}
+
+async function connectMic(){
+  if (!navigator.mediaDevices?.getUserMedia){ $("micMsg").textContent = window.self !== window.top ? "This page is running inside a preview window, which blocks the microphone. Download the file and open it directly in Chrome." : "This browser can't use the microphone here. Open the file in Chrome, or from an https:// address."; return false; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = ctx.createMediaStreamSource(stream);
+    analyser = ctx.createAnalyser(); analyser.fftSize = 2048;
+    buf = new Float32Array(analyser.fftSize);
+    src.connect(analyser); demo = false;
+    $("micMsg").textContent = "Microphone connected.";
+    return true;
+  } catch(e){
+    const framed = window.self !== window.top;
+    const why = framed ? "This page is running inside a preview window, which blocks the microphone. Download the file and open it directly in Chrome."
+      : e.name === "NotAllowedError" ? "Microphone permission was denied. Click the lock or mic icon in the address bar, set Microphone to Allow, then reload."
+      : e.name === "NotFoundError" ? "No microphone found. Plug one in or check the device's sound settings."
+      : e.name === "NotReadableError" ? "Another app (Zoom, Teams, etc.) is using the microphone. Close it and try again."
+      : e.name === "SecurityError" ? "The browser blocked the mic on this address. Open the file in Chrome, or from an https:// address."
+      : "Microphone error: " + e.name + ". Try Chrome, or use Demo mode to test.";
+    $("micMsg").textContent = why;
+    return false;
+  }
+}
+let demoT = 0, demoPeak = 0;
+function readDb(){
+  if (demo){
+    demoT += 1;
+    const burst = demoT % 9 < 3 ? demoPeak * (0.75 + Math.random() * 0.25) : 0;
+    return Math.max(42 + Math.random() * 4, burst);
+  }
+  if (!analyser) return MIN;
+  analyser.getFloatTimeDomainData(buf);
+  let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+  const rms = Math.sqrt(sum / buf.length) || 1e-8;
+  return Math.max(MIN, Math.min(MAX, 20 * Math.log10(rms) + cfg.offset));
+}
+function idle(){
+  if (!running){ live = live * 0.7 + readDb() * 0.3; setMeter(live); }
+  requestAnimationFrame(idle);
+}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+async function play(nick){
+  if (running) return;
+  if (!analyser && !demo && !(await connectMic())){ $("staff").showModal(); return; }
+  if (ctx && ctx.state === "suspended") await ctx.resume();
+  running = true; $("goBtn").disabled = true; drawRungs(null);
+  const stage = $("stage"); stage.classList.remove("pop");
+  $("tierTxt").textContent = nick + ", get ready…"; $("prizeTxt").textContent = "Take a bite and wait for GO";
+  for (const n of ["3", "2", "1"]){ $("bigTxt").textContent = n; await wait(800); }
+  $("bigTxt").textContent = "GO!"; $("tierTxt").textContent = "CRUNCH NOW!";
+  demoPeak = 55 + Math.random() * 40;
+  let peak = MIN; const end = performance.now() + cfg.secs * 1000;
+  await new Promise(done => {
+    const tick = () => {
+      const db = readDb(); peak = Math.max(peak, db);
+      setMeter(db, peak);
+      $("prizeTxt").textContent = Math.ceil((end - performance.now()) / 1000) + " s left";
+      performance.now() < end ? requestAnimationFrame(tick) : done();
+    };
+    tick();
+  });
+  const score = Math.round(peak), tier = tierFor(score);
+  const rank = scores.filter(s => s.db > score).length + 1;
+  const entry = { id: Date.now(), nick, db: score, tier: tier.name, time: new Date().toLocaleTimeString("en-GB") };
+  scores.push(entry); lastId = entry.id; store.set("scores-" + today(), scores);
+  drawRungs(score); drawBoard();
+  void stage.offsetWidth; stage.classList.add("pop");
+  $("bigTxt").textContent = score + " dB";
+  $("tierTxt").textContent = tier.name.toUpperCase() + "!";
+  $("prizeTxt").textContent = `You win: ${tier.prize} · #${rank} of ${scores.length} today`;
+  setTimeout(() => { running = false; $("goBtn").disabled = false; $("nick").value = ""; $("nick").focus(); }, 2500);
+}
+
+function fillStaff(){
+  $("offset").value = cfg.offset; $("secs").value = cfg.secs;
+  $("tierInputs").innerHTML = cfg.tiers.map((t, i) => `<div><label for="t${i}">${esc(t.name)} · ${esc(t.prize)}</label><input id="t${i}" type="number" value="${t.min}" ${i === 0 ? "disabled" : ""}></div>`).join("");
+  cfg.tiers.forEach((t, i) => { if (i) $("t" + i).addEventListener("change", e => { t.min = +e.target.value || t.min; cfg.tiers.sort((a, b) => a.min - b.min); save(); }); });
+}
+function save(){ store.set("cfg", cfg); drawRungs(null); }
+
+$("playForm").addEventListener("submit", e => { e.preventDefault(); const n = $("nick").value.trim(); if (n) play(n); });
+$("staffBtn").addEventListener("click", () => { fillStaff(); drawBoard(); $("staff").showModal(); });
+$("closeBtn").addEventListener("click", () => $("staff").close());
+$("micBtn").addEventListener("click", connectMic);
+$("demoBtn").addEventListener("click", () => { demo = true; $("micMsg").textContent = "Demo mode on: scores are simulated. Connect the microphone before the booth opens."; });
+$("offset").addEventListener("change", e => { cfg.offset = +e.target.value || defaults.offset; save(); });
+$("secs").addEventListener("change", e => { cfg.secs = Math.min(10, Math.max(2, +e.target.value || 4)); save(); });
+$("calBtn").addEventListener("click", async () => {
+  if (!analyser && !(await connectMic())) return;
+  $("micMsg").textContent = "Keep the booth quiet… measuring for 3 seconds.";
+  const old = cfg.offset; cfg.offset = 0; let sum = 0, n = 0; const end = performance.now() + 3000;
+  while (performance.now() < end){ analyser.getFloatTimeDomainData(buf); let s = 0; for (const v of buf) s += v * v; sum += Math.sqrt(s / buf.length); n++; await wait(50); }
+  const floor = 20 * Math.log10(sum / n || 1e-8);
+  cfg.offset = Math.round(45 - floor) || old; save(); fillStaff();
+  $("micMsg").textContent = `Calibrated: quiet room now reads about 45 dB (offset ${cfg.offset}).`;
+});
+$("copyBtn").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText($("csv").value); $("micMsg").textContent = "Results copied."; }
+  catch(e){ $("csv").select(); $("micMsg").textContent = "Select the text above and copy it."; }
+});
+$("resetBtn").addEventListener("click", () => {
+  if ($("resetBtn").dataset.sure){ scores = []; lastId = null; store.set("scores-" + today(), scores); drawBoard(); delete $("resetBtn").dataset.sure; $("resetBtn").textContent = "Clear today"; $("micMsg").textContent = "Today's results cleared."; }
+  else { $("resetBtn").dataset.sure = "1"; $("resetBtn").textContent = "Tap again to clear"; }
+});
+$("fsBtn").addEventListener("click", () => { (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())?.catch?.(() => {}); });
+document.addEventListener("keydown", e => { if (e.key === "Enter" && document.activeElement === document.body) $("nick").focus(); });
+
+drawRungs(null); drawBoard(); setMeter(MIN, MIN); idle();
+}
+</script>
+</body>
+</html>
